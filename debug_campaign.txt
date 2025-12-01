@@ -1,0 +1,7 @@
+DataFrame shape: (3, 2)
+DataFrame columns: Index(['name', 'phone'], dtype='object')
+DataFrame head:
+   name         phone
+0  Pepe  +34600111222
+1   Ana  +34600333444
+2  Juan  +34600555666

@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
+import os
 
 # Page config
 st.set_page_config(
@@ -15,7 +16,8 @@ st.markdown("### Campaign Management Dashboard")
 st.markdown("---")
 
 # API Configuration
-API_URL = "http://127.0.0.1:8000/campaign/upload"
+BASE_URL = os.getenv("API_URL", "http://localhost:8000")
+API_URL = f"{BASE_URL}/campaign/upload"
 
 # Main content
 col1, col2 = st.columns([2, 1])

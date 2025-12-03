@@ -27,10 +27,14 @@ RUN useradd -m appuser
 # Copy application code
 COPY . .
 
-# Change ownership to non-root user
+# --- NUEVO: Damos permisos de ejecución al script ANTES de cambiar de usuario ---
+RUN chmod +x start.sh
+
+# 30. Change ownership to non-root user (ESTA LÍNEA YA LA TIENES)
 RUN chown -R appuser:appuser /app
 
-# Switch to non-root user
+# 33. Switch to non-root user (ESTA LÍNEA YA LA TIENES)
 USER appuser
 
-# No CMD specified (will be defined by orchestrator)
+# --- NUEVO: Definimos el script maestro como comando de arranque ---
+CMD ["./start.sh"]

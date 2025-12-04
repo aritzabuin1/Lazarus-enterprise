@@ -48,6 +48,7 @@ async def create_leads(leads: List[LeadCreate]):
 class ChatRequest(BaseModel):
     message: str
     lead_id: str
+    telegram_chat_id: Optional[str] = None
 
 @app.post("/chat", status_code=status.HTTP_202_ACCEPTED)
 async def chat_endpoint(request: ChatRequest):

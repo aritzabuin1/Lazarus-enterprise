@@ -1,6 +1,6 @@
-from typing import List
+from typing import List, Optional, Dict, Any 
 from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.domain.models import LeadCreate, Lead
 from app.database import supabase
 from app.logger import logger

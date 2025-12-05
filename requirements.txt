@@ -8,7 +8,6 @@ python-dotenv
 httpx
 pytest
 langgraph
-langfuse
 langchain-openai
 langchain-core
 pydantic-settings
@@ -19,3 +18,15 @@ pandas
 streamlit
 requests
 
+slowapi
+gunicorn
+python-jose[cryptography]
+passlib[bcrypt]
+alembic
+sentry-sdk[fastapi]
+langfuse
+gptcache
+presidio-analyzer
+presidio-anonymizer
+ragas
+guardrails-ai

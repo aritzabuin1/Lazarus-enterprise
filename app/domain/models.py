@@ -48,3 +48,27 @@ class AgentState(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
     lead_context: Dict[str, Any]
     intent: Literal["buy", "doubt", "unknown"]
+
+# --- Auth Models ---
+class UserBase(BaseModel):
+    email: EmailStr
+    is_active: bool = True
+    is_superuser: bool = False
+    full_name: Optional[str] = None
+
+class UserCreate(UserBase):
+    password: str
+
+class User(UserBase):
+    id: str
+    hashed_password: str
+
+    class Config:
+        from_attributes = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None

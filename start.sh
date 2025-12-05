@@ -6,9 +6,9 @@ set -e
 echo "🚀 Iniciando contenedor con ROLE: $ROLE"
 
 if [ "$ROLE" = "api" ]; then
-    echo "🔵 Arrancando API (FastAPI)..."
-    # Ejecutamos Uvicorn en el puerto 80 para que EasyPanel lo vea
-    exec uvicorn app.main:app --host 0.0.0.0 --port 80
+    echo "🔵 Arrancando API (FastAPI) con Gunicorn..."
+    # Ejecutamos Gunicorn con Uvicorn workers para producción
+    exec gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:80
 
 elif [ "$ROLE" = "worker" ]; then
     echo "🟢 Arrancando Worker (Celery)..."

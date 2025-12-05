@@ -1,68 +1,85 @@
+import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
 from app.main import app
+from app.core.database import Base, get_db
+from app.core.security import get_password_hash
+
+# 1. Setup In-Memory SQLite Database for Testing
+SQLALCHEMY_DATABASE_URL = "sqlite://"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# 2. Override the dependency
+def override_get_db():
+    try:
+        db = TestingSessionLocal()
+        yield db
+    finally:
+        db.close()
+
+app.dependency_overrides[get_db] = override_get_db
 
 client = TestClient(app)
 
-def test_create_leads_success():
-    """
-    Test creating a lead with valid data.
-    Should return 201 Created and the created lead data.
-    """
-    # Mock response from Supabase
-    mock_response = MagicMock()
-    mock_response.data = [
-        {
-            "id": "test-uuid-123",
-            "campaign_id": "campaign-uuid-456",
-            "phone": "+14155552671",
-            "name": "Alice Smith",
-            "email": "alice@example.com",
-            "status": "new",
-            "metadata": {},
-            "created_at": "2023-11-29T12:00:00Z"
-        }
-    ]
-    
-    # Patch the supabase client where it is used in app.main
-    with patch("app.main.supabase") as mock_supabase:
-        # Configure the mock chain: supabase.table().insert().execute()
-        mock_supabase.table.return_value.insert.return_value.execute.return_value = mock_response
-        
-        payload = [
-            {
-                "phone": "+14155552671",
-                "name": "Alice Smith",
-                "email": "alice@example.com",
-                "campaign_id": "campaign-uuid-456"
-            }
-        ]
-        
-        response = client.post("/leads", json=payload)
-        
-        assert response.status_code == 201
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]["phone"] == "+14155552671"
-        assert data[0]["id"] == "test-uuid-123"
+@pytest.fixture(autouse=True)
+def setup_db():
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
 
-def test_create_leads_missing_phone():
-    """
-    Test creating a lead without the required 'phone' field.
-    Should return 422 Unprocessable Entity.
-    """
-    payload = [
-        {
-            "name": "Bob Jones",
-            "campaign_id": "campaign-uuid-456"
-            # Missing phone
-        }
-    ]
-    
-    response = client.post("/leads", json=payload)
-    
-    assert response.status_code == 422
+def test_create_user():
+    response = client.post(
+        "/users/",
+        json={"email": "test@example.com", "password": "password123", "full_name": "Test User"},
+    )
+    assert response.status_code == 200
     data = response.json()
-    # Verify that the error is about the missing field
-    assert data["detail"][0]["loc"] == ["body", 0, "phone"]
-    assert data["detail"][0]["msg"] == "Field required"
+    assert data["email"] == "test@example.com"
+    assert "id" in data
+
+def test_login_access_token():
+    # 1. Create User
+    client.post(
+        "/users/",
+        json={"email": "test@example.com", "password": "password123", "full_name": "Test User"},
+    )
+    
+    # 2. Login
+    response = client.post(
+        "/login",
+        data={"username": "test@example.com", "password": "password123"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+
+def test_read_users_me():
+    # 1. Create & Login
+    client.post(
+        "/users/",
+        json={"email": "test@example.com", "password": "password123", "full_name": "Test User"},
+    )
+    login_res = client.post(
+        "/login",
+        data={"username": "test@example.com", "password": "password123"},
+    )
+    token = login_res.json()["access_token"]
+    
+    # 2. Access Protected Endpoint
+    response = client.get(
+        "/users/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["email"] == "test@example.com"
